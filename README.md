@@ -4,242 +4,176 @@ Flask application demonstrating automated CI/CD pipeline using GitHub Actions an
 
 ## Project Overview
 
+**What This Is:** A production-ready CI/CD demonstration project showing automated deployment from code commit to live Kubernetes application.
+
 **Application:** Flask web app that fetches cat facts and dog images from public APIs.
 
 **CI/CD Pipeline:**
+
 1. **GitHub Actions** builds Docker image on push to `main`
 2. Image pushed to **DockerHub**
 3. **ArgoCD** detects repo changes and syncs to **Kubernetes**
+
+**What You'll Learn:**
+
+- Containerizing Python applications with Docker
+- Automated builds & deployments with GitHub Actions
+- GitOps deployment patterns with ArgoCD
+- Kubernetes orchestration & management
+- Zero-downtime rolling updates
+- Infrastructure as Code best practices
+
+**Use Cases:**
+
+- Template for deploying your own Flask/Python apps
+- Learning modern CI/CD workflows
+- Building production-grade deployment pipelines
 
 **Tech Stack:** Flask, Docker, Kubernetes, GitHub Actions, ArgoCD
 
 ## Prerequisites
 
-- Python 3.11+
-- Docker
-- Kubernetes cluster (Minikube/Kind/Cloud)
-- kubectl
-- ArgoCD installed on cluster
-- DockerHub account
-- GitHub account
-
-## Quick Start
-
-### 1. Local Development
-
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+# macOS
+brew install python@3.11 docker kubectl minikube
 
-# Run app
-python app.py
-
-# Visit http://localhost:5000
+# Accounts needed
+# - DockerHub: https://hub.docker.com
+# - GitHub: https://github.com
 ```
 
-### 2. Docker
+## Setup Steps
+
+### 1. Configure Files
+
+- Edit `k8s/deployment.yaml`: Replace `YOUR_DOCKERHUB_USERNAME`
+- Edit `argocd/application.yaml`: Replace `YOUR_GITHUB_USERNAME`
+
+### 2. DockerHub Setup
+
+- Create repo: https://hub.docker.com/repository/create → Name: `cat-flask` (Public)
+- Generate token: https://hub.docker.com/settings/security → New Access Token
+
+### 3. GitHub Secrets
+
+https://github.com/YOUR_USERNAME/flask-gitactions-argocd/settings/secrets/actions
+
+- `DOCKER_USERNAME` = your-dockerhub-username
+- `DOCKER_PASSWORD` = your-dockerhub-token
+
+### 4. GitHub Permissions
+
+https://github.com/YOUR_USERNAME/flask-gitactions-argocd/settings/actions
+→ Workflow permissions → "Read and write permissions" → Save
+
+### 5. Push & Verify
 
 ```bash
-# Build image
-docker build -t cat-flask .
-
-# Run container
-docker run -p 5000:5000 cat-flask
-
-# Visit http://localhost:5000
-```
-
-### 3. Kubernetes (Minikube)
-
-```bash
-# Start Minikube
-minikube start
-
-# Apply manifests
-kubectl apply -f k8s/
-
-# Access service
-minikube service cat-flask-service
-
-# Or port-forward
-kubectl port-forward service/cat-flask-service 5000:5000
-```
-
-## Setup Instructions
-
-### Step 1: Clone Repository
-
-```bash
-git clone https://github.com/YOUR_USERNAME/flask-gitactions-argocd.git
-cd flask-gitactions-argocd
-```
-
-### Step 2: Configure GitHub Secrets
-
-Add secrets in GitHub repo: Settings → Secrets and variables → Actions
-
-- `DOCKER_USERNAME`: Your DockerHub username
-- `DOCKER_PASSWORD`: Your DockerHub password/token
-
-### Step 3: Update Configuration
-
-**In `k8s/deployment.yaml`:**
-- Replace `YOUR_DOCKERHUB_USERNAME` with your DockerHub username
-
-**In `argocd/application.yaml`:**
-- Replace `YOUR_GITHUB_USERNAME` with your GitHub username
-
-### Step 4: Install ArgoCD on Kubernetes
-
-```bash
-# Create namespace
-kubectl create namespace argocd
-
-# Install ArgoCD
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-
-# Wait for pods
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=argocd-server -n argocd --timeout=300s
-
-# Get admin password
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
-
-# Port-forward ArgoCD UI
-kubectl port-forward svc/argocd-server -n argocd 8080:443
-
-# Login: https://localhost:8080
-# Username: admin
-# Password: (from above command)
-```
-
-### Step 5: Deploy Application with ArgoCD
-
-```bash
-# Apply ArgoCD application
-kubectl apply -f argocd/application.yaml
-
-# Check status
-kubectl get applications -n argocd
-
-# Access app
-kubectl port-forward service/cat-flask-service 5000:5000
-```
-
-### Step 6: Push to GitHub
-
-```bash
-git add .
-git commit -m "Initial commit"
 git push origin main
 ```
 
-GitHub Actions will automatically:
-- Build Docker image
-- Push to DockerHub
-- Update deployment manifest
+Watch: https://github.com/YOUR_USERNAME/flask-gitactions-argocd/actions
 
-ArgoCD will automatically:
-- Detect changes
-- Sync to Kubernetes cluster
-
-## How It Works
-
-### CI Pipeline (GitHub Actions)
-
-1. Code pushed to `main` branch
-2. GitHub Actions workflow triggers
-3. Builds Docker image
-4. Pushes image to DockerHub
-5. Updates `k8s/deployment.yaml` with new image tag
-6. Commits changes back to repo
-
-### CD Pipeline (ArgoCD)
-
-1. ArgoCD monitors GitHub repo every 3 minutes
-2. Detects changes in `k8s/` directory
-3. Automatically syncs manifests to Kubernetes
-4. Self-heals if manual changes made
-5. Prunes deleted resources
-
-## Project Structure
-
-```
-flask-gitactions-argocd/
-├── app.py                      # Flask application
-├── requirements.txt            # Python dependencies
-├── Dockerfile                  # Container image definition
-├── templates/
-│   └── index.html             # HTML template
-├── k8s/
-│   ├── deployment.yaml        # Kubernetes deployment
-│   ├── service.yaml           # Kubernetes service
-│   └── ingress.yaml           # Ingress resource (optional)
-├── argocd/
-│   └── application.yaml       # ArgoCD application manifest
-└── .github/
-    └── workflows/
-        └── deploy.yml         # GitHub Actions workflow
-```
-
-## Monitoring
+### 6. Start Kubernetes
 
 ```bash
-# Check pods
-kubectl get pods
+minikube start --cpus=2 --memory=4096
+```
 
-# Check service
-kubectl get svc
+### 7. Install ArgoCD
 
-# Check ArgoCD sync status
-kubectl get applications -n argocd
+```bash
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=argocd-server -n argocd --timeout=300s
+```
 
-# View pod logs
-kubectl logs -l app=cat-flask
+### 8. Access ArgoCD
 
-# View ArgoCD logs
-kubectl logs -n argocd -l app.kubernetes.io/name=argocd-server
+```bash
+# Get password
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+
+# Port-forward (Terminal 1)
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+```
+
+Login: https://localhost:8080 (admin / password-above)
+
+### 9. Deploy App
+
+```bash
+kubectl apply -f argocd/application.yaml
+kubectl get pods  # Wait for 2 pods
+```
+
+### 10. Access App
+
+```bash
+# Terminal 2
+kubectl port-forward service/cat-flask-service 5000:5000
+```
+
+Open: http://localhost:5000
+
+## Test CI/CD
+
+```bash
+# Edit templates/index.html
+git add . && git commit -m "Test" && git push
+```
+
+Watch: GitHub Actions → ArgoCD UI → Pods update → App changes live
+
+## Local Development
+
+```bash
+pip install -r requirements.txt && python app.py  # http://localhost:5000
+docker build -t cat-flask . && docker run -p 5000:5000 cat-flask
+```
+
+## Useful Commands
+
+```bash
+kubectl get pods              # Check pods
+kubectl logs -l app=cat-flask # View logs
+kubectl get applications -n argocd  # ArgoCD status
 ```
 
 ## Cleanup
 
 ```bash
-# Delete Kubernetes resources
-kubectl delete -f k8s/
-
-# Delete ArgoCD application
 kubectl delete -f argocd/application.yaml
-
-# Uninstall ArgoCD
-kubectl delete -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-
-# Delete namespace
+kubectl delete -f k8s/
 kubectl delete namespace argocd
-
-# Stop Minikube
 minikube stop
 ```
 
 ## Troubleshooting
 
-**GitHub Actions failing:**
-- Check secrets are configured correctly
-- Verify DockerHub credentials
+- **Actions fail**: Check secrets at https://github.com/YOUR_USERNAME/flask-gitactions-argocd/settings/secrets/actions
+- **ArgoCD not syncing**: Verify repo URL in `argocd/application.yaml`
+- **Pods not starting**: `kubectl describe pod -l app=cat-flask`
 
-**ArgoCD not syncing:**
-- Check repo URL in `application.yaml`
-- Verify ArgoCD has access to repo (public or with credentials)
-- Check ArgoCD logs: `kubectl logs -n argocd -l app.kubernetes.io/name=argocd-application-controller`
+## Screenshots
 
-**Pods not starting:**
-- Check image name in `deployment.yaml`
-- Verify image exists on DockerHub
-- Check pod logs: `kubectl logs -l app=cat-flask`
+### ArgoCD Dashboard
+![ArgoCD Application](https://raw.githubusercontent.com/salemmohdmohd/flask-gitactions-argocd/main/docs/Screenshot%202025-10-01%20at%2011.54.23.png)
+*ArgoCD showing synced application with healthy status*
 
-## APIs Used
+### Application UI
+![Flask App](https://raw.githubusercontent.com/salemmohdmohd/flask-gitactions-argocd/main/docs/Screenshot%202025-10-01%20at%2011.55.40.png)
+*Cat Facts & Dog Images web interface*
 
-- **Cat Facts API:** https://catfact.ninja/facts
-- **Dog CEO API:** https://dog.ceo/api/breeds/image/random
+### ArgoCD Resource Tree
+![ArgoCD Tree](https://raw.githubusercontent.com/salemmohdmohd/flask-gitactions-argocd/main/docs/Screenshot%202025-10-01%20at%2011.55.10.png)
+*Kubernetes resources deployed via ArgoCD*
 
-## License
+### Deployment Pipeline
+![Pipeline](https://raw.githubusercontent.com/salemmohdmohd/flask-gitactions-argocd/main/docs/Screenshot%202025-10-01%20at%2011.56.07.png)
+*CI/CD workflow: Git Push → GitHub Actions → DockerHub → ArgoCD → Kubernetes*
 
-MIT
+## APIs
+
+- Cat Facts: https://catfact.ninja/facts
+- Dog Images: https://dog.ceo/api/breeds/image/random
