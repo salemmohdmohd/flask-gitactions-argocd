@@ -4,9 +4,10 @@ This module implements a simple Flask web application that fetches and displays
 random cat facts from the Cat Facts API.
 """
 
-from flask import Flask, render_template, request
-import requests
 import logging
+
+import requests
+from flask import Flask, render_template, request
 
 app = Flask(__name__)
 
@@ -21,7 +22,7 @@ DOG_API = "https://dog.ceo/api/breeds/image/random"
 @app.route("/", methods=["GET", "POST"])
 def index():
     """Render the main page and handle form submissions.
-    
+
     Returns:
         str: Rendered HTML template with cat facts and dog images.
     """
@@ -40,11 +41,7 @@ def index():
 
         # Fetch cat facts
         try:
-            response = requests.get(
-                CAT_FACTS_API,
-                params={"limit": limit},
-                timeout=5
-            )
+            response = requests.get(CAT_FACTS_API, params={"limit": limit}, timeout=5)
             response.raise_for_status()
             data = response.json()
             cat_facts = data.get("data", [])
@@ -64,18 +61,14 @@ def index():
             logger.error(f"Error fetching dog image: {e}")
 
     return render_template(
-        "index.html",
-        cat_facts=cat_facts,
-        dog_image=dog_image,
-        error=error,
-        limit=limit
+        "index.html", cat_facts=cat_facts, dog_image=dog_image, error=error, limit=limit
     )
 
 
 @app.route("/health")
 def health():
     """Health check endpoint for Kubernetes probes.
-    
+
     Returns:
         dict: Health status.
     """
