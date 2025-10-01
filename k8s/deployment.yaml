@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: cat-flask
-        image: YOUR_DOCKERHUB_USERNAME/cat-flask:latest
+        image: smohdmohd/cat-flask:latest
         ports:
         - containerPort: 5000
           name: http
